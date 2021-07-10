@@ -109,6 +109,9 @@ Here are some things that can probably use some attention:
 
 ## Commands list
 
+The values recognized where an "app" argument is required are currently
+`dmd`, `ldc`, and `dub`.
+
 These flags are recognized for every command:
 
 - `--home` to override the `DIVA_HOME` environment variable and explicitly
