@@ -712,9 +712,10 @@ def diva_list(home, args, logger):
     """
     app = args.application.strip().lower()
     active_version = get_active_version(home, app)
-    installed_versions = set(iter_installed_versions(home, app))
+    installed_versions = iter_installed_versions(home, app)
     if args.remote:
         versions = get_app_version_list(app, logger)
+        installed_versions = set(installed_versions)
         if not len(versions):
             logger.info("Found no remote versions")
         for version in versions:
@@ -724,6 +725,8 @@ def diva_list(home, args, logger):
                 (" [Active]" if version == active_version else "")
             )
     else:
+        installed_versions = list(installed_versions)
+        installed_versions.sort(reverse=True)
         if not len(installed_versions):
             logger.info("Found no installed versions")
         for version in installed_versions:

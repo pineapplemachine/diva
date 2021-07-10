@@ -173,16 +173,16 @@ List available versions of a given version-managed software.
 
 ```
 pineapple:diva$ diva list dmd
-dmd 2.072.2
-dmd 2.095.0 [Active]
-dmd 2.072.0
-dmd 2.094.0
-dmd 2.094.1
 dmd 2.097.0
-dmd 1.054
+dmd 2.095.0 [Active]
 dmd 2.094.2
+dmd 2.094.1
+dmd 2.094.0
 dmd 2.091.1
+dmd 2.072.2
 dmd 2.072.1
+dmd 2.072.0
+dmd 1.054
 ```
 
 Use the `--remote` flag to request a complete list of versions
