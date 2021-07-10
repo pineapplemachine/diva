@@ -72,8 +72,8 @@ Add these lines to your `~/.bashrc` or equivalent:
 # This path is where Diva stores its files
 export DIVA_HOME="$HOME/.diva"
 # These put Diva's in-use D binaries into your PATH
-export PATH="$PATH:$DIVA_HOME/bin/ldc"
 export PATH="$PATH:$DIVA_HOME/bin/dub"
+export PATH="$PATH:$DIVA_HOME/bin/ldc"
 export PATH="$PATH:$DIVA_HOME/bin/dmd"
 ```
 
