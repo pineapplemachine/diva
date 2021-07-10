@@ -1,0 +1,9 @@
+Diva 0.1.1, 2021-07-10
+- Add command `diva disuse [app]`
+- Include DIVA_HOME path in `diva status` output
+- Improve behavior when uninstalling an in-use version
+- Fix logger writing everything to stderr, change this to stdout
+- Fix issue causing `diva use` initially installing a version to fail
+
+Diva 0.1.0, 2021-07-09
+- Initial release

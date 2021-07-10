@@ -25,7 +25,7 @@ try:
 except:
     pass
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __website__ = "https://github.com/pineapplemachine/diva"
 
 DIVA_APPS = (
@@ -111,6 +111,15 @@ def get_argparser():
     use_parser.add_argument("version", type=str, help=(
         "A version string or \"latest\" specifying which version to activate."
     ))
+    # diva disuse
+    disuse_parser = subparsers.add_parser("disuse", help=(
+        "Deactivate any in-use version of an application."
+    ))
+    add_common(disuse_parser)
+    disuse_parser.add_argument("application", type=str,
+        choices=DIVA_APPS,
+        help="Deactivate the in-use version of this particular application."
+    )
     # diva version
     version_parser = subparsers.add_parser("version", help=(
         "Show the version of this Diva tool."
@@ -143,7 +152,7 @@ def get_logger(name, verbose=False, silent=False):
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
-    stream_handler = logging.StreamHandler()
+    stream_handler = logging.StreamHandler(sys.stdout)
     message_format = "%(message)s"
     formatter = logging.Formatter(message_format)
     stream_handler.setFormatter(formatter)
@@ -288,8 +297,26 @@ def update_settings(home, app, version, logger):
     # Activate it
     use_ok = use_app_version(home, app, version, logger)
     if not use_ok:
-        logger.error("Failed to activate %s version %s", app, version)
+        logger.error("Failed to activate %s %s", app, version)
     return use_ok
+
+def disuse_app(home, app, logger):
+    """
+    Remove symlinks for the currently in-use version of an app.
+    """
+    bin_unlinked = False
+    lib_unlinked = False
+    bin_path = os.path.join(home, "bin", app)
+    if os.path.islink(bin_path):
+        logger.debug("Unlinking %s", bin_path)
+        os.unlink(bin_path)
+        bin_unlinked = True
+    lib_path = os.path.join(home, "lib", app)
+    if os.path.islink(lib_path):
+        logger.debug("Unlinking %s", lib_path)
+        os.unlink(lib_path)
+        lib_unlinked = True
+    return bin_unlinked, lib_unlinked
 
 def use_app_version(home, app, version, logger):
     """
@@ -298,7 +325,7 @@ def use_app_version(home, app, version, logger):
     """
     install_path = get_install_path(home, app, version)
     if not os.path.exists(install_path):
-        logger.debug("Install path for %s version %s does not exist",
+        logger.debug("Install path for %s %s does not exist",
             app, version
         )
         return False
@@ -314,12 +341,13 @@ def use_app_version(home, app, version, logger):
                 file_path = os.path.join(root, file_name)
                 logger.debug("Assigning permissions for file %s", file_path)
                 os.chmod(file_path, stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+    # Remove previous symlinks
+    bin_unlinked, lib_unlinked = disuse_app(home, app, logger)
+    if bin_unlinked or lib_unlinked:
+        logger.info("Unlinked previously active %s version.", app)
     # Make symbolic link (binaries)
     if binary_path:
         symlink_path = os.path.join(home, "bin", app)
-        if os.path.islink(symlink_path):
-            logger.debug("Unlinking %s", symlink_path)
-            os.unlink(symlink_path)
         if not os.path.exists(os.path.dirname(symlink_path)):
             logger.debug("Creating directory %s", os.path.dirname(symlink_path))
             os.makedirs(os.path.dirname(symlink_path))
@@ -328,9 +356,6 @@ def use_app_version(home, app, version, logger):
     # Make symbolic link (libraries)
     if library_path:
         symlink_path = os.path.join(home, "lib", app)
-        if os.path.islink(symlink_path):
-            logger.debug("Unlinking %s", symlink_path)
-            os.unlink(symlink_path)
         if not os.path.exists(os.path.dirname(symlink_path)):
             logger.debug("Creating directory %s", os.path.dirname(symlink_path))
             os.makedirs(os.path.dirname(symlink_path))
@@ -694,8 +719,8 @@ def diva_list(home, args, logger):
             logger.info("Found no remote versions")
         for version in versions:
             logger.info(app + " " + (version or "ERROR") +
-                (" [Latest]" if version == versions[0] else "") +
                 (" [Installed]" if version in installed_versions else "") +
+                (" [Latest]" if version == versions[0] else "") +
                 (" [Active]" if version == active_version else "")
             )
     else:
@@ -718,12 +743,12 @@ def diva_install(home, args, logger):
     download_urls = get_app_download_urls(home, app, version, logger)
     install_path = get_install_path(home, app, version)
     if not len(download_urls):
-        logger.error("Found no download urls for %s version %s", app, version)
+        logger.error("Found no download urls for %s %s", app, version)
         return 1
     if os.path.exists(install_path):
         logger.info(
             "Found an existing or partial installation for " +
-            "%s version %s at path %s",
+            "%s %s at path %s",
             app, version, install_path
         )
         confirm_reinstall = args.yes or prompt_confirm(
@@ -756,7 +781,7 @@ def diva_install(home, args, logger):
         else:
             logger.debug("Failed to download %s", download_url)
     if not download_success:
-        logger.error("Failed to download %s version %s", app, version)
+        logger.error("Failed to download %s %s", app, version)
         return 1
     # TODO: Handle other archive types besides .zip and .tar.xz
     if not os.path.exists(install_path):
@@ -778,7 +803,7 @@ def diva_install(home, args, logger):
     if build_status != 0:
         logger.debug("Encountered a build error, aborting installation.")
         return build_status
-    if not args.inactive:
+    if not hasattr(args, "inactive") or not args.inactive:
         settings_ok = update_settings(home, app, version, logger)
         if not settings_ok:
             logger.debug("Encountered an activation error, aborting installation.")
@@ -793,16 +818,22 @@ def diva_uninstall(home, args, logger):
     version = args.version
     install_path = get_install_path(home, app, version)
     if not os.path.exists(install_path):
-        logger.error("No installation for %s version %s was found.", app, version)
+        logger.error("No installation for %s %s was found.", app, version)
         logger.info("Exiting without uninstalling any software.")
         return 1
     confirm_uninstall = args.yes or prompt_confirm(
-        "Really uninstall %s version %s?" % (app, version),
+        "Really uninstall %s %s?" % (app, version),
         default=False
     )
     if not confirm_uninstall:
         logger.info("Exiting without uninstalling any software.")
         return 0
+    active_version = get_active_version(home, app)
+    if version == active_version:
+        logger.debug("The %s version being uninstalled is currently in-use.", app)
+        bin_unlinked, lib_unlinked = disuse_app(home, app, logger)
+        if bin_unlinked or lib_unlinked:
+            logger.info("Unlinked %s %s", app, version)
     logger.debug("About to remove installation directory %s", install_path)
     shutil.rmtree(install_path, ignore_errors=True)
     logger.info("Removed installation directory %s", install_path)
@@ -815,10 +846,10 @@ def diva_use(home, args, logger):
     version = args.version
     use_ok = use_app_version(home, args.application, args.version, logger)
     if use_ok:
-        logger.info("Now using %s version %s", app, version)
+        logger.info("Now using %s %s", app, version)
         return 0
     confirm_install = args.yes or prompt_confirm(
-        "Intallation not found. Install %s version %s?" % (app, version),
+        "Installation not found. Install %s %s?" % (app, version),
         default=False
     )
     if confirm_install:
@@ -826,6 +857,17 @@ def diva_use(home, args, logger):
     else:
         logger.info("Exiting without changing active %s version.", app)
         return 0
+
+def diva_disuse(home, args, logger):
+    """
+    Implements the command `diva disuse [app]`
+    """
+    app = args.application.strip().lower()
+    bin_unlinked, lib_unlinked = disuse_app(home, app, logger)
+    if bin_unlinked or lib_unlinked:
+        logger.info("Unlinked previously active %s version.", app)
+    else:
+        logger.info("Found no version of %s currently in use.", app)
 
 def diva_version(home, args, logger):
     """
@@ -840,10 +882,11 @@ def diva_status(home, args, logger):
     """
     Implements the command `diva status`
     """
+    logger.info("Diva's home directory is %s", home)
     for app in DIVA_APPS:
         version = get_active_version(home, app)
         if version:
-            logger.info("Using %s version %s", app, version)
+            logger.info("Using %s %s", app, version)
         else:
             logger.info("Not using any version of %s", app)
 
@@ -853,7 +896,7 @@ def diva_cleanup(home, args, logger):
     """
     downloads_path = os.path.join(home, "downloads")
     confirm_cleanup = args.yes or prompt_confirm(
-        "Really remove all files in the %s directory?" % downloads_path,
+        "Really remove all files in %s?" % downloads_path,
         default=False
     )
     if not confirm_cleanup:
@@ -895,6 +938,8 @@ def __main__():
         return diva_uninstall(home, args, logger)
     elif args.action == "use":
         return diva_use(home, args, logger)
+    elif args.action == "disuse":
+        return diva_disuse(home, args, logger)
     elif args.action == "version":
         return diva_version(home, args, logger)
     elif args.action == "status":
