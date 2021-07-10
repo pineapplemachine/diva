@@ -53,17 +53,44 @@ from source.
 
 ## Installation
 
-First, ensure that you have
-[Python 3](https://www.python.org/downloads/) installed.
+### 1. Install Python 3
 
-After cloning or otherwise downloading the repository, navigate
-to the repository's root directory in a command line.
-Run this local [pip](https://pypi.org/project/pip/) installation
+Ensure that you have [Python 3](https://www.python.org/downloads/) installed.
+Consider using a Python version manager for this, such as
+[pyenv](https://github.com/pyenv/pyenv).
+
+### 2. Download Diva
+
+Clone or otherwise
+[download](https://github.com/pyenv/pyenv/archive/refs/heads/master.zip)
+this git repository.
+
+```
+git clone https://github.com/pineapplemachine/diva.git
+```
+
+### 3. Install Diva's Python package
+
+Navigate to the Diva repository's root directory in a command line,
+then run a local [pip](https://pypi.org/project/pip/) installation
 to make `diva` available on the command line:
 
 ```
-pip3 install -e .
+cd ~/path/to/diva
+pip3 install .
 ```
+
+You should repeat this command any time you want to update Diva
+or otherwise modify it.
+
+Consider using `pip3 install -e .` as an alternative if you intend
+to update or modify Diva frequently.
+(See [Python packaging docs](https://packaging.python.org/guides/distributing-packages-using-setuptools/#working-in-development-mode).)
+
+After installing `diva` this way, you can remove it with
+`pip3 uninstall diva`.
+
+### 4. Add DIVA_HOME and append to PATH
 
 Add these lines to your `~/.bashrc` or equivalent:
 
@@ -105,7 +132,7 @@ If there's anyone who would like to rewrite this tool in D, please do!
 Here are some things that can probably use some attention:
 - I will be astonished if this script works as-is on Windows.
 - It might be important to support archives besides *.zip and *.tar.xz.
-- Building LDC from source when there isn't a suitable binary release.
+- Building DMD or LDC from source when there isn't a suitable binary release.
 
 ## Commands list
 
@@ -125,7 +152,7 @@ You can check Diva's exit status code to determine if the operation was
 completed successfully.
 
 - `-y` or `--yes` will automatically respond with "yes" to interactive
-yes/no prompts. These promps are normally presented before carrying through
+yes/no prompts. These prompts are normally presented before carrying through
 with more unusual or destructive operations.
 
 ### diva version
